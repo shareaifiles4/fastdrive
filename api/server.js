@@ -34,6 +34,15 @@ const DELETION_SCHEDULE_PATH = path.join(WRITABLE_DIR, 'driveshare_deletions.jso
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const SALT_ROUNDS = 10;
 
+// --- Startup Environment Check ---
+const requiredEnvVars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'APP_URL'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    throw new Error(`FATAL ERROR: Missing required environment variables: ${missingEnvVars.join(', ')}. Please set them in your Vercel project settings.`);
+}
+
+
 // Ensure temp directories exist
 if (!fs.existsSync(SNIPPETS_PATH)) fs.mkdirSync(SNIPPETS_PATH);
 
@@ -289,7 +298,7 @@ app.post('/api/initiate-batch-upload', verifyClient, async (req, res) => {
         if (retentionDays && retentionDays > 0) {
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + retentionDays);
-            const dateString = expirationDate.toISOString().split('T')[0]; // Format as<y_bin_791>YYYY-MM-DD
+            const dateString = expirationDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
             folderNameParts.push(`Expires ${dateString}`);
         }
         folderNameParts.push(`Share ${crypto.randomBytes(4).toString('hex')}`);
