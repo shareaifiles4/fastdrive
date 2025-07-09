@@ -230,9 +230,14 @@ app.get('/api/auth/google/callback', async (req, res) => {
     mainOauth2Client.setCredentials(tokens);
     const userInfo = await google.oauth2({ version: 'v2', auth: mainOauth2Client }).userinfo.get();
     const userEmail = userInfo.data.email;
-    if (allowedAdminEmails.size > 0 && !allowedAdminEmails.has(userEmail)) {
-        return res.status(403).send('<h1>Access Denied</h1>');
+
+    // Stricter check: If the admin list is configured, the user MUST be on it.
+    // If the list is empty, NO ONE can be an admin through this flow.
+    if (!allowedAdminEmails.has(userEmail)) {
+        console.warn(`Admin access denied for ${userEmail}. Not in ALLOWED_ADMIN_EMAILS.`);
+        return res.status(403).send('<h1>Access Denied: This account is not authorized for admin access.</h1>');
     }
+
     const allTokens = loadTokens();
     const existingAccountIndex = allTokens.findIndex(t => t.email === userEmail);
     if (existingAccountIndex >= 0) allTokens[existingAccountIndex] = { email: userEmail, tokens };
