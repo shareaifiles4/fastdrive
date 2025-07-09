@@ -298,7 +298,7 @@ app.post('/api/initiate-batch-upload', verifyClient, async (req, res) => {
         if (retentionDays && retentionDays > 0) {
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + retentionDays);
-            const dateString = expirationDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            const dateString = expirationDate.toISOString().split('T')[0]; // Format as<y_bin_791>YYYY-MM-DD
             folderNameParts.push(`Expires ${dateString}`);
         }
         folderNameParts.push(`Share ${crypto.randomBytes(4).toString('hex')}`);
