@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriveShare - Secure File Sharing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .drop-zone { border: 2px dashed #94a3b8; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .drop-zone.drag-over { background-color: #e0f2fe; border-color: #0284c7; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader-icon { animation: spin 1s linear infinite; }
+        .btn-primary { @apply bg-sky-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105; }
+        .btn-secondary { @apply bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105; }
+        .tab { @apply px-4 py-2 font-semibold text-slate-500 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition-colors duration-200 cursor-pointer; }
+        .tab.active { @apply text-sky-600 border-sky-600; }
+        .hljs { @apply p-4 rounded-lg text-sm; }
+        /* Toggle Switch Styles */
+        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2563eb; }
+        input:checked + .slider:before { transform: translateX(16px); }
+    </style>
+</head>
+<body class="text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <header class="text-center mb-8 flex flex-col items-center">
+            <div class="bg-sky-600 p-3 rounded-full mb-4 shadow-lg">
+                <i class="ph-fill ph-paper-plane-tilt text-white text-4xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-slate-900">DriveShare</h1>
+            <p class="text-slate-600 mt-2">Upload files, get a shareable, secure link instantly.</p>
+        </header>
+
+        <main id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl">
+
+            <!-- Auth Screen -->
+            <div id="auth-screen" class="hidden text-center">
+                <p class="text-slate-600 mb-6">Please sign in with your Google Account to use this service.</p>
+                <div id="g_id_signin_button_container" class="flex justify-center">
+                    <div id="g_id_signin"></div>
+                </div>
+            </div>
+
+            <!-- Client/Uploader Screen -->
+            <div id="client-screen" class="hidden">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+                    <p class="text-sm text-slate-600">Signed in as: <strong id="client-email"></strong></p>
+                    <button id="sign-out-btn" class="text-xs text-red-500 hover:underline font-semibold">Sign Out</button>
+                </div>
+                <div id="tab-container" class="mb-6">
+                    <nav class="flex space-x-4" aria-label="Tabs">
+                        <button id="tab-files" class="tab active"><i class="ph-bold ph-files align-middle mr-2"></i>Files</button>
+                        <button id="tab-code" class="tab"><i class="ph-bold ph-code align-middle mr-2"></i>Code</button>
+                    </nav>
+                </div>
+                <div id="uploader-panes">
+                    <!-- File Uploader -->
+                    <div id="file-uploader-content">
+                        <div id="drop-zone" class="drop-zone rounded-xl p-10 text-center cursor-pointer bg-slate-50 hover:bg-slate-100">
+                            <input type="file" id="file-input" multiple class="hidden">
+                            <i class="ph-bold ph-cloud-arrow-up text-sky-500 text-5xl"></i>
+                            <p class="mt-4 text-lg font-medium text-slate-700">Drag & drop files here</p>
+                            <p class="mt-1 text-sm text-slate-500">or click to select files</p>
+                        </div>
+                        <div id="file-list" class="mt-6 space-y-2"></div>
+                        <div class="mt-6 p-4 bg-slate-50 rounded-lg border space-y-4">
+                            <div class="flex items-center justify-between">
+                                <label for="file-password-toggle" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-lock-key mr-2 text-yellow-600"></i>Protect with Password</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="file-password-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div id="file-password-container" class="hidden">
+                                <input type="password" id="file-password-input" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter a strong password">
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <label for="file-retention-select" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-timer mr-2 text-blue-600"></i>Auto-delete After</label>
+                                <select id="file-retention-select" class="p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                    <option value="0">Never</option>
+                                    <option value="3">3 Days</option>
+                                    <option value="7">7 Days</option>
+                                    <option value="15">15 Days</option>
+                                    <option value="30">30 Days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-8 text-center">
+                            <button id="upload-button" class="btn-primary w-full sm:w-auto disabled:bg-slate-400 disabled:cursor-not-allowed disabled:transform-none" disabled>
+                                <i class="ph-bold ph-upload-simple align-middle mr-2"></i>
+                                Upload Files
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Code Uploader -->
+                    <div id="code-uploader-content" class="hidden">
+                        <textarea id="code-input" class="w-full p-4 font-mono text-sm bg-slate-800 text-slate-200 rounded-lg border-2 border-transparent focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-indigo-500 transition resize-none" placeholder="Paste your code snippet here..." rows="8"></textarea>
+                        <div class="mt-6 p-4 bg-slate-50 rounded-lg border space-y-4">
+                             <div class="flex items-center justify-between">
+                                <label for="code-password-toggle" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-lock-key mr-2 text-yellow-600"></i>Protect with Password</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="code-password-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div id="code-password-container" class="hidden">
+                                <input type="password" id="code-password-input" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter a strong password">
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <label for="code-retention-select" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-timer mr-2 text-blue-600"></i>Auto-delete After</label>
+                                <select id="code-retention-select" class="p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                    <option value="0">Never</option>
+                                    <option value="3">3 Days</option>
+                                    <option value="7">7 Days</option>
+                                    <option value="15">15 Days</option>
+                                    <option value="30">30 Days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-6 text-center">
+                            <button id="share-code-button" class="btn-primary w-full sm:w-auto">
+                                <i class="ph-bold ph-share-network align-middle mr-2"></i>
+                                Share Snippet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="hidden text-center">
+                <i class="ph-bold ph-check-circle text-green-500 text-6xl mx-auto"></i>
+                <h2 class="text-2xl font-semibold text-slate-800 mt-4 mb-2">Share Link Ready!</h2>
+                <p class="text-slate-600 mb-6">Your content is ready to be shared. Copy the link below.</p>
+                <div class="flex items-center bg-slate-100 border border-slate-300 rounded-lg p-2">
+                    <input id="share-link-input" type="text" class="flex-grow bg-transparent text-slate-700 border-none focus:ring-0" readonly>
+                    <button id="copy-button" class="ml-2 bg-sky-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-sky-700">Copy</button>
+                </div>
+                <button id="start-over-button" class="mt-8 text-sky-600 font-semibold hover:underline">Share more</button>
+            </div>
+
+            <!-- Download Screen -->
+            <div id="download-screen" class="hidden">
+                 <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Files for Download</h2>
+                 <div id="download-file-list" class="space-y-3"></div>
+                 <div class="mt-8 text-center border-t pt-6">
+                     <button id="download-all-btn" class="btn-secondary w-full sm:w-auto disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
+                         <i class="ph-bold ph-file-zip align-middle mr-2"></i>
+                         Download All (.zip)
+                     </button>
+                     <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Upload your own files</a>
+                 </div>
+            </div>
+            
+            <!-- Code Display Screen -->
+            <div id="code-display-screen" class="hidden">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 text-center">Code Snippet</h2>
+                <div class="relative bg-slate-800 rounded-lg">
+                    <pre><code id="code-display-block" class="hljs"></code></pre>
+                    <button id="copy-code-button" class="absolute top-2 right-2 bg-slate-700 text-white text-xs font-semibold py-1 px-2 rounded-md hover:bg-slate-600">
+                        <i class="ph-bold ph-copy align-middle mr-1"></i>Copy
+                    </button>
+                </div>
+                 <div class="mt-8 text-center">
+                     <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Share your own snippet</a>
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loader Overlay -->
+    <div id="loader-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50 p-4">
+        <div class="loader-icon h-16 w-16 border-4 border-t-sky-500 border-r-sky-500 border-b-sky-500 border-l-white rounded-full"></div>
+        <p id="loader-text" class="text-white text-lg mt-6 font-medium">Processing...</p>
+        <div class="w-full max-w-xs bg-gray-700 rounded-full h-2.5 mt-4">
+            <div id="progress-bar" class="bg-sky-500 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <p id="progress-text" class="text-white text-sm mt-2"></p>
+    </div>
+    
+    <!-- Notification Modal -->
+    <div id="notification-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
+            <p id="notification-text" class="text-lg text-slate-700 mb-6"></p>
+            <button id="notification-close-button" class="bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-slate-700">Close</button>
+        </div>
+    </div>
+
+    <!-- Password Prompt Modal -->
+    <div id="password-prompt-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full">
+            <h3 class="text-xl font-bold text-slate-800 text-center mb-2">Password Required</h3>
+            <p class="text-slate-600 text-center mb-6">This content is password protected. Please enter the password to continue.</p>
+            <form id="password-prompt-form">
+                <input type="password" id="password-prompt-input" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter password">
+                <p id="password-prompt-error" class="text-red-500 text-sm mt-2 h-5"></p>
+                <button type="submit" class="w-full mt-4 bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">Unlock</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const authScreen = document.getElementById('auth-screen');
+        const clientScreen = document.getElementById('client-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const downloadScreen = document.getElementById('download-screen');
+        const codeDisplayScreen = document.getElementById('code-display-screen');
+        const fileUploaderContent = document.getElementById('file-uploader-content');
+        const codeUploaderContent = document.getElementById('code-uploader-content');
+        const uploadButton = document.getElementById('upload-button');
+        const shareCodeButton = document.getElementById('share-code-button');
+        const startOverButton = document.getElementById('start-over-button');
+        const copyButton = document.getElementById('copy-button');
+        const copyCodeButton = document.getElementById('copy-code-button');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileListContainer = document.getElementById('file-list');
+        const shareLinkInput = document.getElementById('share-link-input');
+        const downloadFileList = document.getElementById('download-file-list');
+        const codeInput = document.getElementById('code-input');
+        const codeDisplayBlock = document.getElementById('code-display-block');
+        const loaderOverlay = document.getElementById('loader-overlay');
+        const loaderText = document.getElementById('loader-text');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const notificationModal = document.getElementById('notification-modal');
+        const notificationText = document.getElementById('notification-text');
+        const notificationCloseButton = document.getElementById('notification-close-button');
+        const clientEmailSpan = document.getElementById('client-email');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const tabFiles = document.getElementById('tab-files');
+        const tabCode = document.getElementById('tab-code');
+        // Password UI
+        const filePasswordToggle = document.getElementById('file-password-toggle');
+        const filePasswordContainer = document.getElementById('file-password-container');
+        const filePasswordInput = document.getElementById('file-password-input');
+        const codePasswordToggle = document.getElementById('code-password-toggle');
+        const codePasswordContainer = document.getElementById('code-password-container');
+        const codePasswordInput = document.getElementById('code-password-input');
+        const passwordPromptModal = document.getElementById('password-prompt-modal');
+        const passwordPromptForm = document.getElementById('password-prompt-form');
+        const passwordPromptInput = document.getElementById('password-prompt-input');
+        const passwordPromptError = document.getElementById('password-prompt-error');
+        // Retention UI
+        const fileRetentionSelect = document.getElementById('file-retention-select');
+        const codeRetentionSelect = document.getElementById('code-retention-select');
+
+
+        let filesToUpload = [];
+        let clientAuthToken = null;
+        let accessTokens = {}; // Store JWTs for protected content, e.g., { 'folderId': 'jwt_token' }
+
+        // --- Client Auth ---
+        async function handleCredentialResponse(response) {
+            clientAuthToken = response.credential;
+            showLoader('Verifying account...');
+            try {
+                const verificationResponse = await fetch('/api/verify-client', {
+                    method: 'POST',
+                    headers: { 'x-client-auth-token': clientAuthToken }
+                });
+                const result = await verificationResponse.json();
+                if (verificationResponse.ok && result.authorized) {
+                    clientEmailSpan.textContent = result.email;
+                    authScreen.classList.add('hidden');
+                    clientScreen.classList.remove('hidden');
+                } else {
+                    google.accounts.id.disableAutoSelect();
+                    showNotification(result.message || 'You are not authorized.', true);
+                }
+            } catch (error) {
+                google.accounts.id.disableAutoSelect();
+                showNotification('Verification error. Please try again.', true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        signOutBtn.addEventListener('click', () => {
+            clientAuthToken = null;
+            google.accounts.id.disableAutoSelect();
+            window.location.href = '/';
+        });
+
+        // --- Routing and Initialization ---
+        window.onload = () => {
+            const hash = window.location.hash;
+            [authScreen, clientScreen, resultScreen, downloadScreen, codeDisplayScreen].forEach(el => el.classList.add('hidden'));
+
+            if (hash.startsWith('#share=')) {
+                showDownloadScreen(hash.substring(7));
+            } else if (hash.startsWith('#code=')) {
+                showCodeScreen(hash.substring(6));
+            } else {
+                authScreen.classList.remove('hidden');
+                google.accounts.id.initialize({
+                    client_id: '76851526680-1broptjsnhna9vaua7avu4o6jbu9m8c0.apps.googleusercontent.com', // Replace with your Client ID
+                    callback: handleCredentialResponse
+                });
+                google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme: "outline", size: "large", type: "standard" });
+            }
+        };
+        
+        window.addEventListener('pageshow', (event) => { if (event.persisted) window.location.reload(); });
+
+        // --- Tab Switching ---
+        tabFiles.addEventListener('click', () => {
+            tabFiles.classList.add('active');
+            tabCode.classList.remove('active');
+            fileUploaderContent.classList.remove('hidden');
+            codeUploaderContent.classList.add('hidden');
+        });
+        tabCode.addEventListener('click', () => {
+            tabCode.classList.add('active');
+            tabFiles.classList.remove('active');
+            codeUploaderContent.classList.remove('hidden');
+            fileUploaderContent.classList.add('hidden');
+        });
+
+        // --- Password UI Toggles ---
+        filePasswordToggle.addEventListener('change', () => {
+            filePasswordContainer.classList.toggle('hidden', !filePasswordToggle.checked);
+        });
+        codePasswordToggle.addEventListener('change', () => {
+            codePasswordContainer.classList.toggle('hidden', !codePasswordToggle.checked);
+        });
+
+        // --- File Handling ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            filesToUpload = [...files];
+            fileListContainer.innerHTML = '';
+            if (filesToUpload.length > 0) {
+                const list = document.createElement('ul');
+                list.className = 'space-y-3';
+                filesToUpload.forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200';
+                    listItem.innerHTML = `<div class="flex items-center min-w-0"><i class="ph-bold ph-file text-2xl text-slate-500 mr-3"></i><span class="text-sm font-medium text-slate-800 truncate">${file.name}</span></div><span class="text-xs text-slate-500 font-medium">${formatBytes(file.size)}</span>`;
+                    list.appendChild(listItem);
+                });
+                fileListContainer.appendChild(list);
+                uploadButton.disabled = false;
+            } else {
+                uploadButton.disabled = true;
+            }
+        }
+
+        // --- Batch Upload Logic ---
+        uploadButton.addEventListener('click', async () => {
+            if (filesToUpload.length === 0 || !clientAuthToken) return;
+
+            const password = filePasswordToggle.checked ? filePasswordInput.value : null;
+            if (password && password.length < 8) {
+                return showNotification('Password must be at least 8 characters long.', true);
+            }
+            
+            const retentionDays = parseInt(fileRetentionSelect.value, 10);
+
+            showLoader(`Preparing to upload ${filesToUpload.length} files...`);
+
+            try {
+                const filesMetadata = filesToUpload.map(file => ({
+                    fileName: file.name,
+                    fileType: file.type || 'application/octet-stream',
+                    size: file.size
+                }));
+
+                const initResponse = await fetch('/api/initiate-batch-upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-client-auth-token': clientAuthToken },
+                    body: JSON.stringify({ 
+                        files: filesMetadata, 
+                        password: password,
+                        retentionDays: retentionDays
+                    }),
+                });
+
+                const initData = await initResponse.json();
+                if (!initResponse.ok || !initData.success) {
+                    throw new Error(initData.message || 'Could not start batch upload.');
+                }
+
+                const { uploadUrls, folderId } = initData;
+
+                showLoader(`Uploading 0 of ${filesToUpload.length} files...`, true);
+                let completedCount = 0;
+                
+                const uploadPromises = filesToUpload.map((file, index) => {
+                    return new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('PUT', uploadUrls[index], true);
+                        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+                        
+                        xhr.onload = () => {
+                            if (xhr.status === 200 || xhr.status === 201) {
+                                completedCount++;
+                                loaderText.textContent = `Uploading ${completedCount} of ${filesToUpload.length} files...`;
+                                progressBar.style.width = `${(completedCount / filesToUpload.length) * 100}%`;
+                                resolve();
+                            } else {
+                                reject(new Error(`Upload failed for ${file.name}: ${xhr.statusText}`));
+                            }
+                        };
+                        xhr.onerror = () => reject(new Error(`Network error during upload of ${file.name}.`));
+                        xhr.send(file);
+                    });
+                });
+
+                await Promise.all(uploadPromises);
+
+                hideLoader();
+                showResultScreen(`#share=${folderId}`);
+
+            } catch (error) {
+                hideLoader();
+                showNotification(error.message, true);
+            }
+        });
+        
+        // --- Download Logic ---
+        async function showDownloadScreen(folderId, retry = false) {
+            if (!retry) {
+                downloadScreen.classList.remove('hidden');
+                showLoader('Fetching files...');
+            }
+
+            try {
+                const headers = {};
+                if (accessTokens[folderId]) {
+                    headers['x-access-token'] = accessTokens[folderId];
+                }
+
+                const response = await fetch(`/api/files/${folderId}`, { headers });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 401 && errorData.passwordRequired) {
+                        hideLoader();
+                        promptForPassword('file', folderId);
+                        return; // Stop execution until password is provided
+                    }
+                    throw new Error(errorData.message || `Error: ${response.status}`);
+                }
+                
+                const files = await response.json();
+                downloadFileList.innerHTML = ''; // Clear previous list
+
+                if (files && files.length > 0) {
+                    files.forEach(file => {
+                        const fileDiv = document.createElement('div');
+                        fileDiv.className = 'flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200';
+                        fileDiv.innerHTML = `<div class="flex items-center min-w-0"><img src="${file.iconLink}" class="h-6 w-6 mr-3" alt="file icon"><span class="text-sm font-medium text-slate-800 truncate">${file.name}</span></div><button data-id="${file.id}" data-name="${file.name}" class="download-btn ml-4 flex-shrink-0 bg-sky-600 text-white font-semibold text-sm py-1 px-4 rounded-md hover:bg-sky-700">Download</button>`;
+                        downloadFileList.appendChild(fileDiv);
+                    });
+                    document.querySelectorAll('.download-btn').forEach(btn => btn.addEventListener('click', handleDownload));
+                    downloadAllBtn.disabled = false;
+                    downloadAllBtn.onclick = () => { 
+                        const token = accessTokens[folderId] ? `?token=${encodeURIComponent(accessTokens[folderId])}` : '';
+                        window.location.href = `/api/download-all/${folderId}${token}`;
+                    };
+                } else {
+                    downloadFileList.innerHTML = '<p class="text-center text-slate-500">No files found in this share.</p>';
+                    downloadAllBtn.disabled = true;
+                }
+            } catch (error) {
+                downloadFileList.innerHTML = `<p class="text-center text-red-500 font-semibold">Could not load files. ${error.message}</p>`;
+                downloadAllBtn.disabled = true;
+            } finally {
+                if (!passwordPromptModal.classList.contains('hidden')) {
+                    // Do not hide loader if password prompt is shown
+                } else {
+                    hideLoader();
+                }
+            }
+        }
+
+        async function handleDownload(event) {
+            const fileId = event.target.dataset.id;
+            const fileName = event.target.dataset.name;
+            showLoader(`Downloading ${fileName}...`, true);
+            try {
+                const folderId = window.location.hash.substring(7);
+                const headers = {};
+                if (accessTokens[folderId]) {
+                    headers['x-access-token'] = accessTokens[folderId];
+                }
+                const response = await fetch(`/api/download/${fileId}`, { headers });
+                if (!response.ok) throw new Error('Download failed. The file may have been moved or deleted.');
+                
+                const contentLength = response.headers.get('content-length');
+                const total = parseInt(contentLength, 10);
+                let loaded = 0;
+                const reader = response.body.getReader();
+                const chunks = [];
+                while(true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    loaded += value.length;
+                    if (total) {
+                        const percentComplete = (loaded / total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.textContent = `${Math.round(percentComplete)}% (${formatBytes(loaded)} / ${formatBytes(total)})`;
+                    }
+                }
+                const blob = new Blob(chunks);
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            } catch (error) {
+                showNotification(error.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // --- Code Snippet Logic ---
+        codeInput.addEventListener('input', () => { codeInput.style.height = 'auto'; codeInput.style.height = (codeInput.scrollHeight) + 'px'; });
+        shareCodeButton.addEventListener('click', async () => {
+            const code = codeInput.value;
+            if (!code.trim()) return showNotification('Code snippet cannot be empty.', true);
+
+            const password = codePasswordToggle.checked ? codePasswordInput.value : null;
+            if (password && password.length < 8) {
+                return showNotification('Password must be at least 8 characters long.', true);
+            }
+            
+            const retentionDays = parseInt(codeRetentionSelect.value, 10);
+
+            showLoader('Sharing snippet...');
+            try {
+                const response = await fetch('/api/share-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-client-auth-token': clientAuthToken },
+                    body: JSON.stringify({ code, password, retentionDays })
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) throw new Error(result.message || 'Failed to share snippet.');
+                showResultScreen(`#code=${result.snippetId}`);
+            } catch (error) {
+                showNotification(error.message, true);
+            } finally {
+                hideLoader();
+            }
+        });
+        
+        async function showCodeScreen(snippetId, retry = false) {
+             if (!retry) {
+                codeDisplayScreen.classList.remove('hidden');
+                showLoader('Fetching snippet...');
+            }
+            try {
+                const headers = {};
+                if (accessTokens[snippetId]) {
+                    headers['x-access-token'] = accessTokens[snippetId];
+                }
+
+                const response = await fetch(`/api/get-code/${snippetId}`, { headers });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 401 && errorData.passwordRequired) {
+                        hideLoader();
+                        promptForPassword('code', snippetId);
+                        return;
+                    }
+                    throw new Error(errorData.message || 'Snippet not found.');
+                }
+
+                const result = await response.json();
+                codeDisplayBlock.textContent = result.code;
+                hljs.highlightElement(codeDisplayBlock);
+            } catch (error) {
+                showNotification(error.message, true);
+                codeDisplayBlock.textContent = 'Error: Could not load snippet.';
+            } finally {
+                if (!passwordPromptModal.classList.contains('hidden')) {
+                    // Do not hide loader if password prompt is shown
+                } else {
+                    hideLoader();
+                }
+            }
+        }
+        
+        copyCodeButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(codeDisplayBlock.textContent).then(() => {
+                copyCodeButton.innerHTML = '<i class="ph-bold ph-check align-middle mr-1"></i>Copied!';
+                setTimeout(() => { copyCodeButton.innerHTML = '<i class="ph-bold ph-copy align-middle mr-1"></i>Copy'; }, 2000);
+            });
+        });
+
+        // --- Password Prompt Logic ---
+        function promptForPassword(type, id) {
+            passwordPromptModal.classList.remove('hidden');
+            passwordPromptInput.value = '';
+            passwordPromptError.textContent = '';
+            passwordPromptInput.focus();
+
+            passwordPromptForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const password = passwordPromptInput.value;
+                if (!password) {
+                    passwordPromptError.textContent = 'Password cannot be empty.';
+                    return;
+                }
+                passwordPromptError.textContent = '';
+                showLoader('Verifying password...');
+                
+                try {
+                    const response = await fetch(`/api/verify-password/${type}/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || 'Verification failed.');
+
+                    accessTokens[id] = result.token; // Store JWT
+                    passwordPromptModal.classList.add('hidden');
+                    
+                    // Retry fetching the content
+                    if (type === 'file') {
+                        showDownloadScreen(id, true);
+                    } else {
+                        showCodeScreen(id, true);
+                    }
+
+                } catch (error) {
+                    hideLoader();
+                    passwordPromptError.textContent = error.message;
+                }
+            };
+        }
+
+
+        // --- UI Helpers ---
+        function showResultScreen(shareUrlHash) {
+            clientScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            shareLinkInput.value = `${window.location.origin}${window.location.pathname}${shareUrlHash}`;
+        }
+        function showLoader(text, showProgress = false) {
+            loaderText.textContent = text;
+            loaderOverlay.classList.remove('hidden');
+            progressBar.parentElement.style.display = showProgress ? 'block' : 'none';
+            progressText.style.display = showProgress ? 'block' : 'none';
+            progressBar.style.width = '0%';
+            progressText.textContent = '';
+        }
+        function hideLoader() { loaderOverlay.classList.add('hidden'); }
+        function showNotification(text, isError = false) {
+            notificationText.textContent = text;
+            notificationText.className = isError ? 'text-lg text-red-600 mb-6' : 'text-lg text-slate-700 mb-6';
+            notificationModal.classList.remove('hidden');
+        }
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+        notificationCloseButton.addEventListener('click', () => notificationModal.classList.add('hidden'));
+        copyButton.addEventListener('click', () => {
+            shareLinkInput.select();
+            document.execCommand('copy');
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+        });
+        startOverButton.addEventListener('click', () => { window.location.href = '/'; });
+    </script>
+</body>
+</html>
