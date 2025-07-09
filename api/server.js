@@ -8,13 +8,14 @@ if (fs.existsSync(dotenvPath)) {
     console.log(`Loading environment variables from: ${dotenvPath}`);
     require('dotenv').config({ path: dotenvPath });
 } else {
-    console.warn(`Warning: .env file not found at ${dotenvPath}. The application might not work correctly without it.`);
+    console.warn(`Warning: .env file not found at ${dotenvPath}. Using Vercel environment variables.`);
 }
 
 
 const express = require('express');
 const { google } = require('googleapis');
 const { Gaxios } = require('gaxios');
+const os = require('os');
 const archiver = require('archiver');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
@@ -25,20 +26,15 @@ const app = express();
 const port = 3000;
 
 // --- Configuration ---
-// Create a 'temp' directory inside '/api' for local storage.
-// NOTE: This approach is for local development. Serverless platforms like Vercel have read-only file systems
-// and require using a dedicated temporary directory like '/tmp' (os.tmpdir()).
-const WRITABLE_DIR = path.join(__dirname, 'temp');
-if (!fs.existsSync(WRITABLE_DIR)) {
-    fs.mkdirSync(WRITABLE_DIR);
-}
+// Use the OS's temporary directory for writable files to ensure Vercel compatibility
+const WRITABLE_DIR = os.tmpdir();
 const TOKENS_PATH = path.join(WRITABLE_DIR, 'driveshare_tokens.json');
 const SNIPPETS_PATH = path.join(WRITABLE_DIR, 'driveshare_snippets');
 const DELETION_SCHEDULE_PATH = path.join(WRITABLE_DIR, 'driveshare_deletions.json');
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const SALT_ROUNDS = 10;
 
-// Ensure temp snippets directories exist
+// Ensure temp directories exist
 if (!fs.existsSync(SNIPPETS_PATH)) fs.mkdirSync(SNIPPETS_PATH);
 
 const allowedAdminEmails = new Set(
@@ -293,7 +289,7 @@ app.post('/api/initiate-batch-upload', verifyClient, async (req, res) => {
         if (retentionDays && retentionDays > 0) {
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + retentionDays);
-            const dateString = expirationDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            const dateString = expirationDate.toISOString().split('T')[0]; // Format as<y_bin_791>YYYY-MM-DD
             folderNameParts.push(`Expires ${dateString}`);
         }
         folderNameParts.push(`Share ${crypto.randomBytes(4).toString('hex')}`);
