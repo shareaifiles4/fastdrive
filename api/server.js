@@ -12,12 +12,14 @@ const app = express();
 const port = 3000;
 
 // --- Configuration ---
-const TOKENS_PATH = path.join(__dirname, 'tokens.json');
-const SNIPPETS_PATH = path.join(__dirname, 'snippets');
-const PASSWORDS_PATH = path.join(__dirname, 'passwords.json');
+// CORRECTED: Use the /tmp directory for writable file storage on serverless environments
+const SNIPPETS_PATH = path.join('/tmp', 'snippets');
+const PASSWORDS_PATH = path.join('/tmp', 'passwords.json');
+const TOKENS_PATH = path.join(__dirname, 'tokens.json'); // This is read-only, so it's fine here.
 
-// Ensure temp directories exist
-if (!fs.existsSync(SNIPPETS_PATH)) fs.mkdirSync(SNIPPETS_PATH);
+
+// Ensure temp directories and files exist in the /tmp folder
+if (!fs.existsSync(SNIPPETS_PATH)) fs.mkdirSync(SNIPPETS_PATH, { recursive: true });
 if (!fs.existsSync(PASSWORDS_PATH)) fs.writeFileSync(PASSWORDS_PATH, JSON.stringify({}));
 
 
@@ -58,10 +60,15 @@ const verifyClient = async (req, res, next) => {
     }
 };
 
+// This function is less critical on serverless as the /tmp is cleared anyway, but good practice.
 function cleanupTempFolders() {
     console.log('Running startup cleanup...');
     fs.readdir(SNIPPETS_PATH, (err, files) => {
-        if (err) return console.error(`Could not list directory: ${SNIPPETS_PATH}`, err);
+        if (err) {
+            // Ignore errors if the directory doesn't exist yet on first run
+            if (err.code === 'ENOENT') return;
+            return console.error(`Could not list directory: ${SNIPPETS_PATH}`, err);
+        }
         for (const file of files) {
             fs.unlink(path.join(SNIPPETS_PATH, file), err => {
                 if (err) console.error(`Error deleting file: ${file}`, err);
@@ -73,6 +80,10 @@ function cleanupTempFolders() {
 
 function readPasswords() {
     try {
+        // Ensure the file exists before trying to read it
+        if (!fs.existsSync(PASSWORDS_PATH)) {
+            fs.writeFileSync(PASSWORDS_PATH, JSON.stringify({}));
+        }
         return JSON.parse(fs.readFileSync(PASSWORDS_PATH));
     } catch {
         return {};
@@ -84,12 +95,19 @@ function writePasswords(data) {
 }
 
 function loadTokens() {
+  // tokens.json should be part of the deployment, so it's read-only.
   if (fs.existsSync(TOKENS_PATH)) return JSON.parse(fs.readFileSync(TOKENS_PATH));
   return [];
 }
 
 function saveTokens(tokens) {
-  fs.writeFileSync(TOKENS_PATH, JSON.stringify(tokens, null, 2));
+  // This will fail on a read-only filesystem. Admin auth flow should be run locally.
+  // On a serverless deploy, the tokens.json should be pre-populated and deployed with the service.
+  try {
+    fs.writeFileSync(TOKENS_PATH, JSON.stringify(tokens, null, 2));
+  } catch (error) {
+    console.warn("Could not save tokens. This is expected on a read-only filesystem. Ensure tokens.json is deployed with the service.");
+  }
 }
 
 function getAvailableAccount() {
@@ -103,7 +121,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- API Routes ---
 
-// Admin Auth (Unchanged)
+// Admin Auth (Unchanged, but note saveTokens will not work on Vercel)
 app.get('/api/auth/google/callback', async (req, res) => { /* ... */ });
 app.post('/api/verify-client', async (req, res) => { /* ... */ });
 
