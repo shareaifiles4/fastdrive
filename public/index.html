@@ -8,29 +8,44 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Sign-In Library -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Highlight.js for Syntax Highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .drop-zone { border: 2px dashed #94a3b8; transition: background-color 0.3s ease, border-color 0.3s ease; }
-        .drop-zone.drag-over { background-color: #e0f2fe; border-color: #0284c7; }
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .drop-zone { 
+            border: 2px dashed #94a3b8; 
+            transition: background-color 0.3s ease, border-color 0.3s ease; 
+        }
+        .drop-zone.drag-over { 
+            background-color: #e0f2fe; 
+            border-color: #0284c7; 
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
         .loader-icon { animation: spin 1s linear infinite; }
-        .btn-primary { @apply bg-sky-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105; }
-        .btn-secondary { @apply bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105; }
-        .tab { @apply px-4 py-2 font-semibold text-slate-500 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition-colors duration-200 cursor-pointer; }
-        .tab.active { @apply text-sky-600 border-sky-600; }
-        .hljs { @apply p-4 rounded-lg text-sm; }
-        /* Toggle Switch Styles */
-        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #2563eb; }
-        input:checked + .slider:before { transform: translateX(16px); }
+        .btn-primary {
+            @apply bg-sky-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105;
+        }
+        .btn-secondary {
+             @apply bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-200 transform hover:scale-105;
+        }
+        .tab {
+            @apply px-4 py-2 font-semibold text-slate-500 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition-colors duration-200 cursor-pointer;
+        }
+        .tab.active {
+            @apply text-sky-600 border-sky-600;
+        }
+        .hljs {
+            @apply p-4 rounded-lg text-sm;
+        }
     </style>
 </head>
 <body class="text-slate-800 flex items-center justify-center min-h-screen p-4">
@@ -41,95 +56,53 @@
                 <i class="ph-fill ph-paper-plane-tilt text-white text-4xl"></i>
             </div>
             <h1 class="text-4xl font-bold text-slate-900">DriveShare</h1>
-            <p class="text-slate-600 mt-2">Upload files, get a shareable, secure link instantly.</p>
+            <p class="text-slate-600 mt-2">Upload files, get a shareable link instantly.</p>
         </header>
 
         <main id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl">
 
-            <!-- Auth Screen -->
+            <!-- Client Sign-In Screen -->
             <div id="auth-screen" class="hidden text-center">
                 <p class="text-slate-600 mb-6">Please sign in with your Google Account to use this service.</p>
                 <div id="g_id_signin_button_container" class="flex justify-center">
-                    <div id="g_id_signin"></div>
+                    <div id="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
                 </div>
             </div>
 
-            <!-- Client/Uploader Screen -->
+            <!-- Uploader Screen -->
             <div id="client-screen" class="hidden">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
                     <p class="text-sm text-slate-600">Signed in as: <strong id="client-email"></strong></p>
                     <button id="sign-out-btn" class="text-xs text-red-500 hover:underline font-semibold">Sign Out</button>
                 </div>
+                
+                <!-- Tab Navigation -->
                 <div id="tab-container" class="mb-6">
                     <nav class="flex space-x-4" aria-label="Tabs">
                         <button id="tab-files" class="tab active"><i class="ph-bold ph-files align-middle mr-2"></i>Files</button>
                         <button id="tab-code" class="tab"><i class="ph-bold ph-code align-middle mr-2"></i>Code</button>
                     </nav>
                 </div>
+
+                <!-- Uploader Panes -->
                 <div id="uploader-panes">
-                    <!-- File Uploader -->
                     <div id="file-uploader-content">
                         <div id="drop-zone" class="drop-zone rounded-xl p-10 text-center cursor-pointer bg-slate-50 hover:bg-slate-100">
-                            <input type="file" id="file-input" multiple class="hidden">
+                            <input type="file" id="file-input" class="hidden"> <!-- Removed 'multiple' for simplicity with new upload flow -->
                             <i class="ph-bold ph-cloud-arrow-up text-sky-500 text-5xl"></i>
-                            <p class="mt-4 text-lg font-medium text-slate-700">Drag & drop files here</p>
-                            <p class="mt-1 text-sm text-slate-500">or click to select files</p>
+                            <p class="mt-4 text-lg font-medium text-slate-700">Drag & drop a file here</p>
+                            <p class="mt-1 text-sm text-slate-500">or click to select a file</p>
                         </div>
                         <div id="file-list" class="mt-6 space-y-2"></div>
-                        <div class="mt-6 p-4 bg-slate-50 rounded-lg border space-y-4">
-                            <div class="flex items-center justify-between">
-                                <label for="file-password-toggle" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-lock-key mr-2 text-yellow-600"></i>Protect with Password</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="file-password-toggle">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div id="file-password-container" class="hidden">
-                                <input type="password" id="file-password-input" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter a strong password">
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <label for="file-retention-select" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-timer mr-2 text-blue-600"></i>Auto-delete After</label>
-                                <select id="file-retention-select" class="p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                                    <option value="1">1 Day (Default)</option>
-                                    <option value="3">3 Days</option>
-                                    <option value="7">7 Days</option>
-                                    <option value="30">30 Days</option>
-                                    <option value="0">Never</option>
-                                </select>
-                            </div>
-                        </div>
                         <div class="mt-8 text-center">
                             <button id="upload-button" class="btn-primary w-full sm:w-auto disabled:bg-slate-400 disabled:cursor-not-allowed disabled:transform-none" disabled>
                                 <i class="ph-bold ph-upload-simple align-middle mr-2"></i>
-                                Upload Files
+                                Upload File
                             </button>
                         </div>
                     </div>
-                    <!-- Code Uploader -->
                     <div id="code-uploader-content" class="hidden">
                         <textarea id="code-input" class="w-full p-4 font-mono text-sm bg-slate-800 text-slate-200 rounded-lg border-2 border-transparent focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-indigo-500 transition resize-none" placeholder="Paste your code snippet here..." rows="8"></textarea>
-                        <div class="mt-6 p-4 bg-slate-50 rounded-lg border space-y-4">
-                             <div class="flex items-center justify-between">
-                                <label for="code-password-toggle" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-lock-key mr-2 text-yellow-600"></i>Protect with Password</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="code-password-toggle">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div id="code-password-container" class="hidden">
-                                <input type="password" id="code-password-input" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter a strong password">
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <label for="code-retention-select" class="font-medium text-slate-700 flex items-center"><i class="ph-bold ph-timer mr-2 text-blue-600"></i>Auto-delete After</label>
-                                <select id="code-retention-select" class="p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                                    <option value="1">1 Day (Default)</option>
-                                    <option value="3">3 Days</option>
-                                    <option value="7">7 Days</option>
-                                    <option value="30">30 Days</option>
-                                    <option value="0">Never</option>
-                                </select>
-                            </div>
-                        </div>
                         <div class="mt-6 text-center">
                             <button id="share-code-button" class="btn-primary w-full sm:w-auto">
                                 <i class="ph-bold ph-share-network align-middle mr-2"></i>
@@ -152,20 +125,20 @@
                 <button id="start-over-button" class="mt-8 text-sky-600 font-semibold hover:underline">Share more</button>
             </div>
 
-            <!-- Download Screen -->
+            <!-- Download Screen (Files) -->
             <div id="download-screen" class="hidden">
                  <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Files for Download</h2>
                  <div id="download-file-list" class="space-y-3"></div>
                  <div class="mt-8 text-center border-t pt-6">
-                     <button id="download-all-btn" class="btn-secondary w-full sm:w-auto disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
-                         <i class="ph-bold ph-file-zip align-middle mr-2"></i>
-                         Download All (.zip)
-                     </button>
-                     <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Upload your own files</a>
+                    <button id="download-all-btn" class="btn-secondary w-full sm:w-auto disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
+                        <i class="ph-bold ph-file-zip align-middle mr-2"></i>
+                        Download All (.zip)
+                    </button>
+                    <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Upload your own files</a>
                  </div>
             </div>
             
-            <!-- Code Display Screen -->
+            <!-- Download Screen (Code) -->
             <div id="code-display-screen" class="hidden">
                 <h2 class="text-2xl font-bold text-slate-800 mb-4 text-center">Code Snippet</h2>
                 <div class="relative bg-slate-800 rounded-lg">
@@ -175,13 +148,13 @@
                     </button>
                 </div>
                  <div class="mt-8 text-center">
-                     <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Share your own snippet</a>
+                    <a href="/" class="text-sky-600 font-semibold hover:underline mt-4 inline-block">Share your own snippet</a>
                  </div>
             </div>
         </main>
     </div>
 
-    <!-- Loader Overlay -->
+    <!-- Global Components -->
     <div id="loader-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50 p-4">
         <div class="loader-icon h-16 w-16 border-4 border-t-sky-500 border-r-sky-500 border-b-sky-500 border-l-white rounded-full"></div>
         <p id="loader-text" class="text-white text-lg mt-6 font-medium">Processing...</p>
@@ -190,8 +163,6 @@
         </div>
         <p id="progress-text" class="text-white text-sm mt-2"></p>
     </div>
-    
-    <!-- Notification Modal -->
     <div id="notification-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
             <p id="notification-text" class="text-lg text-slate-700 mb-6"></p>
@@ -199,21 +170,8 @@
         </div>
     </div>
 
-    <!-- Password Prompt Modal -->
-    <div id="password-prompt-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full">
-            <h3 class="text-xl font-bold text-slate-800 text-center mb-2">Password Required</h3>
-            <p class="text-slate-600 text-center mb-6">This content is password protected. Please enter the password to continue.</p>
-            <form id="password-prompt-form">
-                <input type="password" id="password-prompt-input" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Enter password">
-                <p id="password-prompt-error" class="text-red-500 text-sm mt-2 h-5"></p>
-                <button type="submit" class="w-full mt-4 bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">Unlock</button>
-            </form>
-        </div>
-    </div>
-
     <script>
-        // --- DOM Elements ---
+        // DOM Elements
         const authScreen = document.getElementById('auth-screen');
         const clientScreen = document.getElementById('client-screen');
         const resultScreen = document.getElementById('result-screen');
@@ -245,47 +203,37 @@
         const signOutBtn = document.getElementById('sign-out-btn');
         const tabFiles = document.getElementById('tab-files');
         const tabCode = document.getElementById('tab-code');
-        // Password UI
-        const filePasswordToggle = document.getElementById('file-password-toggle');
-        const filePasswordContainer = document.getElementById('file-password-container');
-        const filePasswordInput = document.getElementById('file-password-input');
-        const codePasswordToggle = document.getElementById('code-password-toggle');
-        const codePasswordContainer = document.getElementById('code-password-container');
-        const codePasswordInput = document.getElementById('code-password-input');
-        const passwordPromptModal = document.getElementById('password-prompt-modal');
-        const passwordPromptForm = document.getElementById('password-prompt-form');
-        const passwordPromptInput = document.getElementById('password-prompt-input');
-        const passwordPromptError = document.getElementById('password-prompt-error');
-        // Retention UI
-        const fileRetentionSelect = document.getElementById('file-retention-select');
-        const codeRetentionSelect = document.getElementById('code-retention-select');
-
 
         let filesToUpload = [];
         let clientAuthToken = null;
-        let accessTokens = {}; // Store JWTs for protected content, e.g., { 'folderId': 'jwt_token' }
 
         // --- Client Auth ---
         async function handleCredentialResponse(response) {
             clientAuthToken = response.credential;
             showLoader('Verifying account...');
+
             try {
+                // This API call now just verifies the user is on the allowed list
                 const verificationResponse = await fetch('/api/verify-client', {
                     method: 'POST',
-                    headers: { 'x-client-auth-token': clientAuthToken }
+                    headers: {
+                        'x-client-auth-token': clientAuthToken
+                    }
                 });
+
                 const result = await verificationResponse.json();
+
                 if (verificationResponse.ok && result.authorized) {
                     clientEmailSpan.textContent = result.email;
                     authScreen.classList.add('hidden');
                     clientScreen.classList.remove('hidden');
                 } else {
                     google.accounts.id.disableAutoSelect();
-                    showNotification(result.message || 'You are not authorized.', true);
+                    showNotification(result.message || 'You are not authorized to use this service.', true);
                 }
             } catch (error) {
                 google.accounts.id.disableAutoSelect();
-                showNotification('Verification error. Please try again.', true);
+                showNotification('An error occurred during verification. Please try again.', true);
             } finally {
                 hideLoader();
             }
@@ -294,7 +242,7 @@
         signOutBtn.addEventListener('click', () => {
             clientAuthToken = null;
             google.accounts.id.disableAutoSelect();
-            window.location.href = '/';
+            window.location.href = '/'; // Go to root to reset state and sign out
         });
 
         // --- Routing and Initialization ---
@@ -308,15 +256,25 @@
                 showCodeScreen(hash.substring(6));
             } else {
                 authScreen.classList.remove('hidden');
+                // Initialize Google Sign-In
                 google.accounts.id.initialize({
-                    client_id: '76851526680-1broptjsnhna9vaua7avu4o6jbu9m8c0.apps.googleusercontent.com', // Replace with your Client ID
+                    // IMPORTANT: Replace this with your actual Google Client ID
+                    client_id: '76851526680-1broptjsnhna9vaua7avu4o6jbu9m8c0.apps.googleusercontent.com',
                     callback: handleCredentialResponse
                 });
-                google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme: "outline", size: "large", type: "standard" });
+                google.accounts.id.renderButton(
+                    document.getElementById('g_id_signin'),
+                    { theme: "outline", size: "large", type: "standard" } 
+                );
             }
         };
         
-        window.addEventListener('pageshow', (event) => { if (event.persisted) window.location.reload(); });
+        // --- Cache Busting ---
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
 
         // --- Tab Switching ---
         tabFiles.addEventListener('click', () => {
@@ -332,14 +290,6 @@
             fileUploaderContent.classList.add('hidden');
         });
 
-        // --- Password UI Toggles ---
-        filePasswordToggle.addEventListener('change', () => {
-            filePasswordContainer.classList.toggle('hidden', !filePasswordToggle.checked);
-        });
-        codePasswordToggle.addEventListener('change', () => {
-            codePasswordContainer.classList.toggle('hidden', !codePasswordToggle.checked);
-        });
-
         // --- File Handling ---
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
@@ -352,89 +302,84 @@
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
         function handleFiles(files) {
-            filesToUpload = [...files];
+            // With the new flow, we handle one file at a time for simplicity.
+            if (files.length > 1) {
+                showNotification("Please select only one file at a time.", true);
+                return;
+            }
+            filesToUpload = [files[0]];
             fileListContainer.innerHTML = '';
             if (filesToUpload.length > 0) {
-                const list = document.createElement('ul');
-                list.className = 'space-y-3';
-                filesToUpload.forEach(file => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200';
-                    listItem.innerHTML = `<div class="flex items-center min-w-0"><i class="ph-bold ph-file text-2xl text-slate-500 mr-3"></i><span class="text-sm font-medium text-slate-800 truncate">${file.name}</span></div><span class="text-xs text-slate-500 font-medium">${formatBytes(file.size)}</span>`;
-                    list.appendChild(listItem);
-                });
-                fileListContainer.appendChild(list);
+                const file = filesToUpload[0];
+                const listItem = document.createElement('div');
+                listItem.className = 'flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200';
+                listItem.innerHTML = `<div class="flex items-center min-w-0"><i class="ph-bold ph-file text-2xl text-slate-500 mr-3"></i><span class="text-sm font-medium text-slate-800 truncate">${file.name}</span></div><span class="text-xs text-slate-500 font-medium">${formatBytes(file.size)}</span>`;
+                fileListContainer.appendChild(listItem);
                 uploadButton.disabled = false;
             } else {
                 uploadButton.disabled = true;
             }
         }
 
-        // --- Batch Upload Logic ---
+        // --- NEW UPLOAD LOGIC (RESUMABLE) ---
         uploadButton.addEventListener('click', async () => {
             if (filesToUpload.length === 0 || !clientAuthToken) return;
 
-            const password = filePasswordToggle.checked ? filePasswordInput.value : null;
-            if (password && password.length < 8) {
-                return showNotification('Password must be at least 8 characters long.', true);
-            }
-            
-            const retentionDays = parseInt(fileRetentionSelect.value, 10);
-
-            showLoader(`Preparing to upload ${filesToUpload.length} files...`);
+            const file = filesToUpload[0];
+            showLoader(`Preparing to upload ${file.name}...`);
 
             try {
-                const filesMetadata = filesToUpload.map(file => ({
-                    fileName: file.name,
-                    fileType: file.type || 'application/octet-stream',
-                    size: file.size
-                }));
-
-                const initResponse = await fetch('/api/initiate-batch-upload', {
+                // STEP 1: Get the resumable upload URL from our backend
+                const initResponse = await fetch('/api/initiate-upload', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-client-auth-token': clientAuthToken },
-                    body: JSON.stringify({ 
-                        files: filesMetadata, 
-                        password: password,
-                        retentionDays: retentionDays
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-client-auth-token': clientAuthToken,
+                    },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        fileType: file.type || 'application/octet-stream',
                     }),
                 });
 
                 const initData = await initResponse.json();
                 if (!initResponse.ok || !initData.success) {
-                    throw new Error(initData.message || 'Could not start batch upload.');
+                    throw new Error(initData.message || 'Could not start upload session.');
                 }
 
-                const { uploadUrls, folderId } = initData;
+                const { resumableUploadUrl, folderId } = initData;
 
-                showLoader(`Uploading 0 of ${filesToUpload.length} files...`, true);
-                let completedCount = 0;
+                // STEP 2: Upload the file DIRECTLY to Google's URL using PUT
+                showLoader(`Uploading ${file.name}...`, true);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', resumableUploadUrl, true);
+                xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
                 
-                const uploadPromises = filesToUpload.map((file, index) => {
-                    return new Promise((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('PUT', uploadUrls[index], true);
-                        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-                        
-                        xhr.onload = () => {
-                            if (xhr.status === 200 || xhr.status === 201) {
-                                completedCount++;
-                                loaderText.textContent = `Uploading ${completedCount} of ${filesToUpload.length} files...`;
-                                progressBar.style.width = `${(completedCount / filesToUpload.length) * 100}%`;
-                                resolve();
-                            } else {
-                                reject(new Error(`Upload failed for ${file.name}: ${xhr.statusText}`));
-                            }
-                        };
-                        xhr.onerror = () => reject(new Error(`Network error during upload of ${file.name}.`));
-                        xhr.send(file);
-                    });
-                });
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.textContent = `${Math.round(percentComplete)}% (${formatBytes(event.loaded)} / ${formatBytes(event.total)})`;
+                    }
+                };
 
-                await Promise.all(uploadPromises);
+                xhr.onload = () => {
+                    hideLoader();
+                    // Google Drive returns 200 or 201 on success for resumable uploads
+                    if (xhr.status === 200 || xhr.status === 201) {
+                        showResultScreen(`#share=${folderId}`);
+                    } else {
+                        handleApiError(xhr);
+                    }
+                };
+                
+                xhr.onerror = () => {
+                    hideLoader();
+                    showNotification('A network error occurred during the direct upload to Google Drive. Please check your connection and try again.', true);
+                };
 
-                hideLoader();
-                showResultScreen(`#share=${folderId}`);
+                xhr.send(file);
 
             } catch (error) {
                 hideLoader();
@@ -442,34 +387,72 @@
             }
         });
         
-        // --- Download Logic ---
-        async function showDownloadScreen(folderId, retry = false) {
-            if (!retry) {
-                downloadScreen.classList.remove('hidden');
-                showLoader('Fetching files...');
+        // --- Code Snippet Logic (Unchanged) ---
+        codeInput.addEventListener('input', () => {
+            codeInput.style.height = 'auto';
+            codeInput.style.height = (codeInput.scrollHeight) + 'px';
+        });
+
+        shareCodeButton.addEventListener('click', async () => {
+            const code = codeInput.value;
+            if (!code.trim()) {
+                showNotification('Code snippet cannot be empty.', true);
+                return;
             }
-
+            showLoader('Sharing snippet...');
             try {
-                const headers = {};
-                if (accessTokens[folderId]) {
-                    headers['x-access-token'] = accessTokens[folderId];
+                const response = await fetch('/api/share-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-client-auth-token': clientAuthToken },
+                    body: JSON.stringify({ code })
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'Failed to share snippet.');
                 }
+                showResultScreen(`#code=${result.snippetId}`);
+            } catch (error) {
+                showNotification(error.message, true);
+            } finally {
+                hideLoader();
+            }
+        });
 
-                const response = await fetch(`/api/files/${folderId}`, { headers });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    if (response.status === 401 && errorData.passwordRequired) {
-                        hideLoader();
-                        promptForPassword('file', folderId);
-                        return; // Stop execution until password is provided
-                    }
-                    throw new Error(errorData.message || `Error: ${response.status}`);
-                }
-                
+        async function showCodeScreen(snippetId) {
+            codeDisplayScreen.classList.remove('hidden');
+            showLoader('Fetching snippet...');
+            try {
+                const response = await fetch(`/api/get-code/${snippetId}`);
+                if (!response.ok) throw new Error('Snippet not found.');
+                const result = await response.json();
+                codeDisplayBlock.textContent = result.code;
+                hljs.highlightElement(codeDisplayBlock);
+            } catch (error) {
+                showNotification(error.message, true);
+                codeDisplayBlock.textContent = 'Error: Could not load snippet.';
+            } finally {
+                hideLoader();
+            }
+        }
+        
+        copyCodeButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(codeDisplayBlock.textContent).then(() => {
+                copyCodeButton.innerHTML = '<i class="ph-bold ph-check align-middle mr-1"></i>Copied!';
+                setTimeout(() => {
+                    copyCodeButton.innerHTML = '<i class="ph-bold ph-copy align-middle mr-1"></i>Copy';
+                }, 2000);
+            });
+        });
+
+        // --- Download Logic (Unchanged) ---
+        async function showDownloadScreen(folderId) {
+            downloadScreen.classList.remove('hidden');
+            showLoader('Fetching files...');
+            try {
+                const response = await fetch(`/api/files/${folderId}`);
+                if (!response.ok) throw new Error('Could not find files.');
                 const files = await response.json();
-                downloadFileList.innerHTML = ''; // Clear previous list
-
+                downloadFileList.innerHTML = '';
                 if (files && files.length > 0) {
                     files.forEach(file => {
                         const fileDiv = document.createElement('div');
@@ -479,23 +462,16 @@
                     });
                     document.querySelectorAll('.download-btn').forEach(btn => btn.addEventListener('click', handleDownload));
                     downloadAllBtn.disabled = false;
-                    downloadAllBtn.onclick = () => { 
-                        const token = accessTokens[folderId] ? `?token=${encodeURIComponent(accessTokens[folderId])}` : '';
-                        window.location.href = `/api/download-all/${folderId}${token}`;
-                    };
+                    downloadAllBtn.addEventListener('click', () => { window.location.href = `/api/download-all/${folderId}`; });
                 } else {
                     downloadFileList.innerHTML = '<p class="text-center text-slate-500">No files found in this share.</p>';
                     downloadAllBtn.disabled = true;
                 }
             } catch (error) {
-                downloadFileList.innerHTML = `<p class="text-center text-red-500 font-semibold">Could not load files. ${error.message}</p>`;
-                downloadAllBtn.disabled = true;
+                showNotification(error.message, true);
+                downloadFileList.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
             } finally {
-                if (!passwordPromptModal.classList.contains('hidden')) {
-                    // Do not hide loader if password prompt is shown
-                } else {
-                    hideLoader();
-                }
+                hideLoader();
             }
         }
 
@@ -504,14 +480,8 @@
             const fileName = event.target.dataset.name;
             showLoader(`Downloading ${fileName}...`, true);
             try {
-                const folderId = window.location.hash.substring(7);
-                const headers = {};
-                if (accessTokens[folderId]) {
-                    headers['x-access-token'] = accessTokens[folderId];
-                }
-                const response = await fetch(`/api/download/${fileId}`, { headers });
+                const response = await fetch(`/api/download/${fileId}`);
                 if (!response.ok) throw new Error('Download failed. The file may have been moved or deleted.');
-                
                 const contentLength = response.headers.get('content-length');
                 const total = parseInt(contentLength, 10);
                 let loaded = 0;
@@ -545,130 +515,19 @@
             }
         }
 
-        // --- Code Snippet Logic ---
-        codeInput.addEventListener('input', () => { codeInput.style.height = 'auto'; codeInput.style.height = (codeInput.scrollHeight) + 'px'; });
-        shareCodeButton.addEventListener('click', async () => {
-            const code = codeInput.value;
-            if (!code.trim()) return showNotification('Code snippet cannot be empty.', true);
-
-            const password = codePasswordToggle.checked ? codePasswordInput.value : null;
-            if (password && password.length < 8) {
-                return showNotification('Password must be at least 8 characters long.', true);
-            }
-            
-            const retentionDays = parseInt(codeRetentionSelect.value, 10);
-
-            showLoader('Sharing snippet...');
-            try {
-                const response = await fetch('/api/share-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-client-auth-token': clientAuthToken },
-                    body: JSON.stringify({ code, password, retentionDays })
-                });
-                const result = await response.json();
-                if (!response.ok || !result.success) throw new Error(result.message || 'Failed to share snippet.');
-                showResultScreen(`#code=${result.snippetId}`);
-            } catch (error) {
-                showNotification(error.message, true);
-            } finally {
-                hideLoader();
-            }
-        });
-        
-        async function showCodeScreen(snippetId, retry = false) {
-             if (!retry) {
-                codeDisplayScreen.classList.remove('hidden');
-                showLoader('Fetching snippet...');
-            }
-            try {
-                const headers = {};
-                if (accessTokens[snippetId]) {
-                    headers['x-access-token'] = accessTokens[snippetId];
-                }
-
-                const response = await fetch(`/api/get-code/${snippetId}`, { headers });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    if (response.status === 401 && errorData.passwordRequired) {
-                        hideLoader();
-                        promptForPassword('code', snippetId);
-                        return;
-                    }
-                    throw new Error(errorData.message || 'Snippet not found.');
-                }
-
-                const result = await response.json();
-                codeDisplayBlock.textContent = result.code;
-                hljs.highlightElement(codeDisplayBlock);
-            } catch (error) {
-                showNotification(error.message, true);
-                codeDisplayBlock.textContent = 'Error: Could not load snippet.';
-            } finally {
-                if (!passwordPromptModal.classList.contains('hidden')) {
-                    // Do not hide loader if password prompt is shown
-                } else {
-                    hideLoader();
-                }
-            }
-        }
-        
-        copyCodeButton.addEventListener('click', () => {
-            navigator.clipboard.writeText(codeDisplayBlock.textContent).then(() => {
-                copyCodeButton.innerHTML = '<i class="ph-bold ph-check align-middle mr-1"></i>Copied!';
-                setTimeout(() => { copyCodeButton.innerHTML = '<i class="ph-bold ph-copy align-middle mr-1"></i>Copy'; }, 2000);
-            });
-        });
-
-        // --- Password Prompt Logic ---
-        function promptForPassword(type, id) {
-            passwordPromptModal.classList.remove('hidden');
-            passwordPromptInput.value = '';
-            passwordPromptError.textContent = '';
-            passwordPromptInput.focus();
-
-            passwordPromptForm.onsubmit = async (e) => {
-                e.preventDefault();
-                const password = passwordPromptInput.value;
-                if (!password) {
-                    passwordPromptError.textContent = 'Password cannot be empty.';
-                    return;
-                }
-                passwordPromptError.textContent = '';
-                showLoader('Verifying password...');
-                
-                try {
-                    const response = await fetch(`/api/verify-password/${type}/${id}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password })
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.message || 'Verification failed.');
-
-                    accessTokens[id] = result.token; // Store JWT
-                    passwordPromptModal.classList.add('hidden');
-                    
-                    // Retry fetching the content
-                    if (type === 'file') {
-                        showDownloadScreen(id, true);
-                    } else {
-                        showCodeScreen(id, true);
-                    }
-
-                } catch (error) {
-                    hideLoader();
-                    passwordPromptError.textContent = error.message;
-                }
-            };
-        }
-
-
         // --- UI Helpers ---
         function showResultScreen(shareUrlHash) {
             clientScreen.classList.add('hidden');
             resultScreen.classList.remove('hidden');
             shareLinkInput.value = `${window.location.origin}${window.location.pathname}${shareUrlHash}`;
+        }
+        function handleApiError(xhr) {
+            let errorMessage = 'An unexpected error occurred.';
+            try {
+                const errorResult = JSON.parse(xhr.responseText);
+                errorMessage = errorResult.message || errorMessage;
+            } catch (e) { /* Ignore if response is not json */ }
+            showNotification(errorMessage, true);
         }
         function showLoader(text, showProgress = false) {
             loaderText.textContent = text;
